@@ -1,14 +1,11 @@
 
 # coding: utf-8
 
-# In[15]:
-
 
 import pandas as pd
 import numpy as np
+from sklearn.linear_model import LinearRegression
 
-
-# In[7]:
 
 
 def dropNA(df, axis = 'rows', how = 'all'):
@@ -18,12 +15,12 @@ def dropNA(df, axis = 'rows', how = 'all'):
         
         if axis == 'rows':
             columns = df.shape[1]
-            for i in range(rows):
+            for i in df.index:
                 if how == 'all':
-                    if sum(df.iloc[i].isna()) == columns:
+                    if sum(df.loc[i].isna()) == columns:
                         goals.append(i)
                 elif how == 'any': 
-                    if sum(df.iloc[i].isna()) != 0:
+                    if sum(df.loc[i].isna()) != 0:
                         goals.append(i)
             return df.drop(goals)
 
@@ -45,8 +42,6 @@ def dropNA(df, axis = 'rows', how = 'all'):
         print(e)
 
 
-# In[14]:
-
 
 
 def replace(df, columns, value = 'mean'):
@@ -59,32 +54,32 @@ def replace(df, columns, value = 'mean'):
             elif value == 'mode':
                 goal = df[column].mode()[0]
 
-            for i in range(len(df[column])):
-                if pandas.isnull(df.loc[i, column]):
+            for i in df.index:
+                if pd.isnull(df.loc[i, column]):
                     df.loc[i, column] = goal
         return df
     except Exception as e:
         print(e)
-
-
-# In[4]:
+        
 
 
 def replaceRegression(df, X, y):
     try:
-        indexes = [i for i in range(len(df)) if not pd.isnull(df.loc[i, X])]
+        indexes = [i for i in df.index if not pd.isnull(df.loc[i, X])]
         X_train = np.array((df.loc[indexes, X])).reshape(-1,1)
         y_train = np.array((df.loc[indexes, y])).reshape(-1,1)
         reg = LinearRegression().fit(X_train, y_train)
-        for i in range(len(df)):
+        for i in df.index:
             if pd.isnull(df.loc[i, X]):
                 df.loc[i, X] = reg.predict(df.loc[i, y])[0][0]
         return df
     except Exception as e:
         print(e)
+        
+df1 = pd.DataFrame({"name": [1, 2, 3, np.NaN, 5], "toy": [4,5,6,10,8]}, index = [2,3,4,5,6])
+print(replaceRegression(df1, 'name', 'toy'))
 
 
-# In[3]:
 
 
 def standartization(df, columns):
@@ -92,14 +87,11 @@ def standartization(df, columns):
         for column in columns:
             mean = df[column].mean()
             std = df[column].std()
-            for i in range(len(df[column])):
+            for i in df.index:
                 df.loc[i, column] = df.loc[i, column] * mean / std
         return df
     except Exception as e:
         print(e)
-
-
-# In[2]:
 
 
 def scaling(df, columns):
@@ -107,10 +99,36 @@ def scaling(df, columns):
         for column in columns:
             Max = max(df[column])
             Min = min(df[column])
-            for i in range(len(df[column])):
+            for i in df.index:
                 df.loc[i, column] = (df.loc[i, column] - Min) / (Max - Min)
-            #for item id df:
-            #    item = (item - Min) / (Max - Min)
+        return df
+    except Exception as e:
+        print(e)
+df1 = pd.DataFrame({"name": [1, 2, 3, np.NaN, 5], "toy": [4,5,6,10,8]}, index = [2,3,4,5,6])
+print(scaling(df1, ['name', 'toy']))
+
+
+
+def KNN (df, trainData, testData, k, numberOfClasses):
+    try:
+        def dist (a, b):
+            return math.sqrt((a[0] - b[0])**2 + (a[1] - b[1])**2)
+        testLabels = []
+        for testPoint in testData:
+            testDist = [ [dist(testPoint, trainData[i][0]), trainData[i][1]] for i in range(len(trainData))]
+            stat = [0 for i in range(numberOfClasses)]
+            for d in sorted(testDist)[0:k]:
+                stat[d[1]] += 1
+            testLabels.append( sorted(zip(stat, range(numberOfClasses)), reverse=True)[0][1] )
+        return testLabels
+    except Exception as e:
+        print(e)
+
+def fillKNN(df, target, trainData, testData, numberOfClasses, k):
+    try:
+        for i in df.index:
+                if pd.isnull(df.loc[i, target]):
+                    df.loc[i, target] = KNN(df, trainData, testData, k, numberOfClasses)
         return df
     except Exception as e:
         print(e)
